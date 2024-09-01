@@ -1,0 +1,44 @@
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Install dependencies for the main app
+        run: |
+          npm install --prefix ./path/to/main-app
+
+      - name: Install dependencies for the additional package
+        run: |
+          npm install --prefix ./path/to/additional-package
+
+      - name: Deploy to VM
+        env:
+          HOST: ${{ secrets.VM_HOST }}
+          USERNAME: ${{ secrets.VM_USERNAME }}
+          SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+        run: |
+          echo "${SSH_KEY}" > deploy_key
+          chmod 600 deploy_key
+          ssh -i deploy_key -o StrictHostKeyChecking=no ${USERNAME}@${HOST} << 'EOF'
+            sudo pkill node || true
+            cd /path/to/your/app
+            git pull origin master
+            npm install --prefix ./path/to/main-app
+            npm install --prefix ./path/to/additional-package
+            sudo nohup node ./path/to/main-app/app.js &
+          EOF
